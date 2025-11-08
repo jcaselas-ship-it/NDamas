@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <!-- Copyright: GEMINI + JC 2025 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Problema de las N-Damas</title>
+    <!-- 1. Cargar Font Awesome para los iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLMDJzL3mEACmoQoqRzssK9U6RMFx5yx+h/m6Bsk0IqAENQ6qV3sL0eS4tB5zYJbA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- 2. Cargar Tone.js para la generación de sonido -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        /* Fuentes y estilo general */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Fondo muy oscuro / Negro */
+            color: #f9fafb; /* Texto blanco */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: #1f2937; /* Contenedor oscuro */
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+            max-width: 95vw;
+            width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #f9fafb; 
+            margin-bottom: 20px; 
+            font-size: 1.8rem;
+        }
+
+        /* Controles - Fila general */
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        /* Estilo para las cajas de control (Tamaño, Tema, Icono) */
+        .size-box, .color-box, .icon-box {
+            background-color: #2c3541; 
+            padding: 8px 15px;
+            border-radius: 12px; 
+            border: 2px solid #3b82f6; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.4); 
+        }
+
+        .size-box label, .color-box label, .icon-box label {
+            font-size: 1.25rem; 
+            color: #60a5fa; /* Color azul claro para el icono */
+            font-weight: 600;
+        }
+
+        /* Controles (Parte Inferior - Botones de acción) */
+        .bottom-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            margin-top: 15px; 
+            flex-wrap: wrap;
+        }
+
+        /* Estilos generales para select y buttons */
+        select, button {
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: 1px solid #4b5563;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        select {
+            background-color: #4b5563; 
+            color: #e5e7eb; 
+            border: 1px solid #60a5fa; 
+            /* Importante: para que el select ocupe el espacio flexible de su contenedor */
+            flex-grow: 1; 
+            min-width: 0; 
+        }
+
+        /* Estilos para el texto del selector de tamaño */
+        #board-size {
+             color: #e5e7eb; 
+             font-family: 'Inter', monospace; 
+        }
+        
+        /* Estilos para el texto del selector de tema */
+        #board-theme, #queen-icon {
+            color: #e5e7eb;
+        }
+
+        select option {
+            color: #111827; 
+            font-weight: bold;
+        }
+
+        select:focus, button:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Botón de Sonido / Info */
+        button#sound-toggle-button {
+            background-color: #facc15; 
+            color: #111827; 
+            padding: 8px 12px;
+        }
+        button#sound-toggle-button:hover {
+            background-color: #f59e0b;
+        }
+
+        button#info-button {
+            background-color: #06b6d4; 
+            color: white;
+            padding: 8px 12px; 
+        }
+        button#info-button:hover {
+            background-color: #0891b2;
+        }
+
+        /* Botones de acción inferiores */
+        .bottom-controls button {
+            color: white;
+        }
+
+        .bottom-controls button#reset-button {
+            background-color: #f59e0b; 
+        }
+        .bottom-controls button#reset-button:hover {
+            background-color: #d97706;
+        }
+
+
+        .bottom-controls button#solve-button {
+             background-color: #10b981; 
+        }
+        .bottom-controls button#solve-button:hover {
+             background-color: #059669;
+        }
+
+        /* Contenedor del Canvas (Ya adaptado a max-width para móvil) */
+        .board-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 500px; 
+            margin: 0 auto;
+            border: 4px solid #4b5563; 
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1 / 1; 
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .win-message {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        /* Estilos del Modal (Instrucciones) */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+            text-align: left;
+            color: #1f2937; 
+        }
+        .modal-content h2, .modal-content li {
+            color: #1f2937;
+        }
+        
+        .modal-close-button {
+            background-color: #f43f5e; 
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: bold;
+            margin-top: 15px;
+            display: block;
+            width: 100%;
+        }
+        .modal-close-button:hover {
+            background-color: #e11d48;
+        }
+        .hidden {
+            display: none !important;
+        }
+
+        /* Confeti Styles */
+        .confetti {
+            position: fixed;
+            opacity: 0;
+            animation: fall 3s ease-out forwards;
+            pointer-events: none;
+            border-radius: 50%;
+            z-index: 2000;
+        }
+
+        @keyframes fall {
+            0% {
+                opacity: 1;
+                transform: translateY(-50vh) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(100vh) rotate(720deg);
+            }
+        }
+
+        /* Estilos responsivos (Móvil) */
+        @media (max-width: 600px) {
+             /* La fila de preferencias superiores debe distribuirse mejor */
+             .controls-row.controls-prefs {
+                 flex-direction: row; 
+                 justify-content: space-between;
+             }
+
+             .size-box { 
+                 flex-grow: 2; /* Da prioridad al selector de tamaño */
+             }
+             
+             /* Botones de icono más pequeños en móvil */
+             #sound-toggle-button, #info-button {
+                 width: 50px;
+                 padding: 8px 5px; 
+                 flex-shrink: 0; /* Asegura que no se hagan más pequeños si no hay espacio */
+             }
+             
+             /* --- NUEVO: La fila media (Tema, Icono) se muestra lado a lado --- */
+             .controls-row.controls-mid {
+                 flex-direction: row; /* Horizontal en móvil */
+                 justify-content: space-between;
+                 gap: 10px; /* Reducimos el gap un poco si se ponen lado a lado */
+             }
+
+             .color-box, .icon-box {
+                 flex: 1 1 48%; /* Ocupan un poco menos del 50% cada uno */
+                 min-width: 140px; /* Asegura que no se compriman demasiado */
+             }
+
+             /* La fila inferior (Acciones) se mantiene apilada (botones grandes para toque) */
+             .bottom-controls {
+                 flex-direction: column;
+                 gap: 10px;
+             }
+
+             .bottom-controls button {
+                 width: 100%; 
+             }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Problema de las N-Damas</h1>
+        
+        <!-- Controles SUPERIORES: TAMAÑO (N), SONIDO, INFO -->
+        <div class="controls-row controls-prefs">
+            <!-- Selector de tamaño -->
+            <div class="size-box">
+                <label for="board-size" title="Tamaño del Tablero (N)">
+                    <i class="fas fa-chess-board"></i>
+                </label>
+                <select id="board-size" onchange="resetGame()">
+                    <!-- Opciones de 4 a 10 (Los colores se aplican en JS al texto) -->
+                    <script>
+                        for (let i = 4; i <= 10; i++) {
+                            document.write(`<option value="${i}" ${i === 8 ? 'selected' : ''}>${i}x${i}</option>`);
+                        }
+                    </script>
+                </select>
+            </div>
+
+            <!-- Botón de Sonido -->
+            <button id="sound-toggle-button" class="icon-only" onclick="toggleSound()" title="Poner/Quitar sonidos">
+                <i class="fas fa-volume-up"></i>
+            </button>
+            
+            <!-- Botón de Información/Instrucciones -->
+            <button id="info-button" class="icon-only" onclick="showInstructions()" title="Instrucciones">
+                <i class="fas fa-info-circle"></i>
+            </button>
+        </div>
+
+
+        <div class="board-container">
+            <canvas id="chessboard"></canvas>
+        </div>
+        
+        <!-- Controles CENTRALES: TEMA, ICONO (Ahora se muestran lado a lado en móvil) -->
+        <div class="controls-row controls-mid">
+            <!-- Selector de Tema de Color -->
+             <div class="color-box">
+                <label for="board-theme" title="Tema de Color">
+                    <i class="fas fa-palette"></i>
+                </label>
+                <select id="board-theme" onchange="changeTheme(this.value)">
+                    <option value="BlueSteel">Acero Azul</option>
+                    <option value="ClassicWood">Madera Clásica</option>
+                    <option value="GreenMarble">Mármol Verde</option>
+                    <option value="PinkVapor">Vapor Rosa</option>
+                </select>
+            </div>
+            
+            <!-- Selector de Icono de Dama -->
+            <div class="icon-box">
+                <label for="queen-icon" title="Icono de Dama">
+                    <i class="fas fa-crown"></i>
+                </label>
+                <select id="queen-icon" onchange="changeQueenIcon(this.value)">
+                    <option value="FontAwesome">Estándar (FA)</option>
+                    <option value="SimpleCrown">Círculo Negro</option>
+                    <option value="Classic">Ajedrez Unicode (♛)</option>
+                    <option value="SymbolQ">Símbolo Q</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="game-message" class="message" style="display: none;"></div>
+        
+        <!-- Controles INFERIORES: Reiniciar y Solución -->
+        <div class="bottom-controls">
+             <button id="reset-button" onclick="resetGame()">Reiniciar Tablero</button>
+             <button id="solve-button" onclick="showSolution()">Mostrar Solución</button>
+        </div>
+        
+    </div>
+    
+    <!-- Modal para mostrar las instrucciones -->
+    <div id="instructionsModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4 text-center">Instrucciones</h2>
+            <ul id="modalInstructionsList" class="list-disc text-left pl-6 mb-4 text-gray-700 space-y-2">
+                <!-- Las instrucciones se insertan mediante JavaScript -->
+            </ul>
+            <button onclick="hideInstructions()" class="modal-close-button">
+                Cerrar
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Copyright: GEMINI + JC 2025
+        // Variables globales
+        let canvas, ctx;
+        let boardSize = 8; 
+        let squareSize;
+        let queens = []; 
+        let isGameOver = false;
+        let isSoundEnabled = true; 
+        
+        let foundSolutions = []; 
+        let solutionCount = 0;   
+        
+        // --- TEMAS DE COLOR Y GESTIÓN DE ICONOS ---
+        const THEMES = {
+            'BlueSteel': {
+                light: '#d1d5db',  // Gris claro suave
+                dark: '#3b82f6',   // Azul real vibrante
+                threat: 'rgba(255, 0, 0, 0.3)', // Rojo semi-transparente
+                queen: '#0f172a'   // Dama muy oscura
+            },
+            'ClassicWood': {
+                light: '#f0d9b5',  // Beige claro (Madera)
+                dark: '#b58863',   // Marrón oscuro (Madera)
+                threat: 'rgba(200, 50, 50, 0.4)',
+                queen: '#000000'
+            },
+            'GreenMarble': {
+                light: '#e0f2f1',  // Menta muy claro
+                dark: '#14b8a6',   // Verde turquesa
+                threat: 'rgba(255, 0, 0, 0.3)',
+                queen: '#0f172a'
+            },
+            'PinkVapor': {
+                light: '#fbcfe8',  // Rosa claro
+                dark: '#db2777',   // Rosa oscuro fuerte
+                threat: 'rgba(59, 130, 246, 0.5)', // Amenaza azul/morada (contraste)
+                queen: '#0f172a'
+            }
+        };
+
+        let activeTheme = THEMES['BlueSteel']; // Tema inicial
+        let queenIconType = 'FontAwesome';     // Icono inicial
+        
+        // Colores para las opciones del selector de tamaño
+        const SIZE_OPTION_COLORS = [
+            '#10b981', 
+            '#f97316', 
+            '#8b5cf6', 
+            '#06b6d4', 
+            '#ef4444', 
+            '#65a30d', 
+            '#ec4899'  
+        ];
+
+
+        // Inicialización de Tone.js (Sintetizadores)
+        let synth;
+        let winSynth;
+        
+        /**
+         * Inicializa los sintetizadores de Tone.js.
+         */
+        function initializeAudio() {
+            // Un PolySynth simple para las notas de colocación
+            synth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "square" },
+                envelope: {
+                    attack: 0.005,
+                    decay: 0.1,
+                    sustain: 0.1,
+                    release: 0.1
+                }
+            }).toDestination();
+            
+            // Un A-D-S-R para el arpegio de victoria
+             winSynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "sine" },
+                envelope: {
+                    attack: 0.01,
+                    decay: 0.2,
+                    sustain: 0.2,
+                    release: 0.5
+                }
+            }).toDestination();
+        }
+
+        /**
+         * Aplica colores variados al TEXTO de la opción seleccionada (solo para el selector N).
+         */
+        function applySizeColors() {
+            const sizeSelector = document.getElementById('board-size');
+            const options = sizeSelector.querySelectorAll('option');
+            
+            options.forEach((option, index) => {
+                const colorIndex = index % SIZE_OPTION_COLORS.length;
+                option.style.backgroundColor = SIZE_OPTION_COLORS[colorIndex];
+                option.style.color = '#111827'; 
+            });
+            
+            function updateSelectDisplay() {
+                const colorIndex = sizeSelector.selectedIndex % SIZE_OPTION_COLORS.length;
+                const color = SIZE_OPTION_COLORS[colorIndex];
+                sizeSelector.style.color = color;
+            }
+            
+            sizeSelector.addEventListener('change', updateSelectDisplay);
+            updateSelectDisplay();
+        }
+
+        /**
+         * Alterna el estado del sonido y actualiza el icono del botón.
+         */
+        function toggleSound() {
+            if (Tone.context.state !== 'running') {
+                Tone.start();
+            }
+            isSoundEnabled = !isSoundEnabled;
+            const icon = document.getElementById('sound-toggle-button').querySelector('i');
+            
+            if (isSoundEnabled) {
+                icon.className = 'fas fa-volume-up';
+            } else {
+                icon.className = 'fas fa-volume-mute';
+            }
+        }
+
+        /**
+         * Sonido de colocación segura.
+         */
+        function playSafeSound() {
+            if (!isSoundEnabled || !synth) return;
+            synth.triggerAttackRelease("G4", "8n");
+        }
+
+        /**
+         * Sonido de colocación errónea.
+         */
+        function playThreatSound() {
+            if (!isSoundEnabled || !synth) return;
+            synth.triggerAttackRelease("C3", "4n");
+        }
+
+        /**
+         * Fanfarria de victoria.
+         */
+        function playWinFanfare() {
+            if (!isSoundEnabled || !winSynth) return;
+            const notes = ["C5", "E5", "G5", "C6"];
+            const now = Tone.now();
+            
+            notes.forEach((note, index) => {
+                winSynth.triggerAttackRelease(note, "8n", now + index * 0.1);
+            });
+        }
+        
+        /**
+         * Genera confeti visual simple.
+         */
+        function startConfetti() {
+            const confettiCount = 50;
+            const colors = ['#f59e0b', '#10b981', '#60a5fa', '#f43f5e', '#ffffff'];
+            const container = document.body;
+
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = `${Math.random() * 100}vw`;
+                confetti.style.top = `${Math.random() * 100}vh`;
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                
+                const size = `${Math.random() * 10 + 5}px`;
+                confetti.style.width = size;
+                confetti.style.height = size;
+                confetti.style.animationDuration = `${2 + Math.random() * 1.5}s`;
+                confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+                
+                container.appendChild(confetti);
+
+                setTimeout(() => {
+                    confetti.remove();
+                }, 3000);
+            }
+        }
+        
+        // --- Funciones de Personalización ---
+        
+        /**
+         * Cambia el tema de color del tablero.
+         * @param {string} themeKey - Clave del tema en el objeto THEMES.
+         */
+        function changeTheme(themeKey) {
+            if (THEMES[themeKey]) {
+                activeTheme = THEMES[themeKey];
+            }
+            drawBoard();
+        }
+        
+        /**
+         * Cambia el tipo de icono utilizado para dibujar la dama.
+         * @param {string} iconType - 'FontAwesome', 'SimpleCrown', 'Classic', o 'SymbolQ'.
+         */
+        function changeQueenIcon(iconType) {
+            queenIconType = iconType;
+            drawBoard();
+        }
+
+        // --- Funciones de utilería y juego ---
+        
+        /**
+         * Genera un hash único a partir de la disposición de las damas.
+         */
+        function hashSolution(currentQueens) {
+            const sortedQueens = [...currentQueens].sort((a, b) => a.row - b.row);
+            return sortedQueens.map(q => `${q.row}-${q.col}`).join('|');
+        }
+
+        /**
+         * Muestra un mensaje en el área de notificaciones del juego.
+         */
+        function showMessage(message, type = '') {
+            const msgElement = document.getElementById('game-message');
+            msgElement.innerHTML = message; 
+            msgElement.className = 'message'; 
+            if (type) {
+                msgElement.classList.add(type);
+            }
+            msgElement.style.display = 'block';
+        }
+
+        /**
+         * Muestra el modal de instrucciones.
+         */
+        function showInstructions() {
+            const instructions = [
+                "Usa el icono del **tablero** para elegir el tamaño ($N$).",
+                "Usa el icono de **paleta** para cambiar el tema de color.",
+                "Usa el icono de **corona** para cambiar el estilo de la Dama.",
+                "Haz clic en un cuadrado para **colocar una dama**.",
+                "El objetivo es colocar las $N$ damas sin que ninguna esté en conflicto.",
+                "Para $N=4, 5, 6$, intenta encontrar todas las soluciones únicas.",
+            ];
+            const list = document.getElementById('modalInstructionsList');
+            list.innerHTML = instructions.map(inst => `<li>${inst}</li>`).join('');
+
+            document.getElementById('instructionsModal').classList.remove('hidden');
+        }
+
+        /**
+         * Oculta el modal de instrucciones.
+         */
+        function hideInstructions() {
+            document.getElementById('instructionsModal').classList.add('hidden');
+        }
+
+
+        /**
+         * Inicializa el juego y el canvas.
+         */
+        function initialize() {
+            canvas = document.getElementById('chessboard');
+            ctx = canvas.getContext('2d');
+            
+            initializeAudio(); 
+            applySizeColors(); 
+            
+            // Inicializar tema y tipo de icono (por si el HTML ha cambiado los valores)
+            const themeSelector = document.getElementById('board-theme');
+            changeTheme(themeSelector.value); 
+            
+            const iconSelector = document.getElementById('queen-icon');
+            changeQueenIcon(iconSelector.value);
+
+            const containerWidth = document.querySelector('.board-container').clientWidth;
+            canvas.width = containerWidth;
+            canvas.height = containerWidth;
+            
+            squareSize = canvas.width / boardSize;
+
+            canvas.addEventListener('click', handleBoardClick);
+            
+            window.addEventListener('resize', debounce(resizeCanvas, 200));
+            
+            const sizeSelector = document.getElementById('board-size');
+            boardSize = parseInt(sizeSelector.value, 10);
+            
+            resetGame();
+        }
+
+        /**
+         * Redimensiona el canvas y redibuja el tablero.
+         */
+        function resizeCanvas() {
+            const containerWidth = document.querySelector('.board-container').clientWidth;
+            canvas.width = containerWidth;
+            canvas.height = containerWidth;
+            squareSize = canvas.width / boardSize;
+            drawBoard();
+        }
+
+        /**
+         * Función debounce.
+         */
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+
+
+        /**
+         * Reinicia el estado del juego.
+         */
+        function resetGame() {
+            const sizeSelector = document.getElementById('board-size');
+            boardSize = parseInt(sizeSelector.value, 10);
+            queens = [];
+            isGameOver = false;
+            document.getElementById('game-message').style.display = 'none';
+            
+            foundSolutions = [];
+            solutionCount = 0;
+
+            resizeCanvas();
+            drawBoard();
+        }
+
+        /**
+         * Comprueba si una posición (r, c) está amenazada.
+         */
+        function isThreatened(r, c, existingQueens) {
+            for (const queen of existingQueens) {
+                const qr = queen.row;
+                const qc = queen.col;
+
+                if (r === qr) return true;
+                if (c === qc) return true;
+                if (Math.abs(r - qr) === Math.abs(c - qc)) return true;
+            }
+            return false;
+        }
+        
+        /**
+         * Muestra una solución (Backtracking).
+         */
+        function showSolution() {
+            queens = []; 
+            isGameOver = false;
+            
+            if (boardSize < 4 && boardSize !== 1) {
+                 showMessage(`No existe solución para un tablero de ${boardSize}x${boardSize}. (N=1 o N >= 4)`, '');
+                 drawBoard();
+                 return;
+            }
+            
+            if (boardSize === 1) {
+                queens.push({ row: 0, col: 0 });
+                showMessage(`¡Solución para N=${boardSize} encontrada!`, 'win-message');
+                isGameOver = true;
+                playWinFanfare(); 
+                drawBoard();
+                return;
+            }
+
+            const solutionFound = solveNQueensUtil(0);
+
+            if (solutionFound) {
+                showMessage(`¡Solución para N=${boardSize} encontrada!`, 'win-message');
+                isGameOver = true;
+                playWinFanfare(); 
+                startConfetti(); 
+            } else {
+                // Esto solo debería ocurrir si el algoritmo es incorrecto para N>=4, lo cual no es el caso.
+                showMessage(`Error: No se encontró una solución para N=${boardSize}.`, '');
+            }
+            
+            drawBoard();
+        }
+
+        /**
+         * Función de Backtracking recursiva para resolver N-Damas.
+         */
+        function solveNQueensUtil(row) {
+            if (row === boardSize) {
+                return true;
+            }
+
+            for (let col = 0; col < boardSize; col++) {
+                if (!isThreatened(row, col, queens)) {
+                    
+                    queens.push({ row, col });
+
+                    if (solveNQueensUtil(row + 1)) {
+                        return true; 
+                    }
+
+                    queens.pop(); // Backtracking
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * Dibuja el tablero de ajedrez y las damas.
+         */
+        function drawBoard() {
+            if (!ctx) return; 
+
+            // 1. Dibuja los cuadrados usando el tema activo
+            for (let r = 0; r < boardSize; r++) {
+                for (let c = 0; c < boardSize; c++) {
+                    const color = (r + c) % 2 === 0 ? activeTheme.light : activeTheme.dark;
+                    ctx.fillStyle = color;
+                    ctx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
+                }
+            }
+            
+            // 2. Comprobar amenazas y dibujar las damas
+            let safeQueensCount = 0;
+            let totalQueensThreatened = 0;
+
+            for (let i = 0; i < queens.length; i++) {
+                const { row, col } = queens[i];
+                
+                const otherQueens = queens.slice(0, i).concat(queens.slice(i + 1));
+                const isQueenThreatened = isThreatened(row, col, otherQueens);
+                
+                if (isQueenThreatened) {
+                    totalQueensThreatened++;
+                    // Colorear de amenaza
+                    ctx.fillStyle = activeTheme.threat;
+                    ctx.fillRect(col * squareSize, row * squareSize, squareSize, squareSize);
+                } else {
+                    safeQueensCount++;
+                }
+                
+                // Dibujar la dama con color de amenaza o color seguro del tema
+                drawQueen(row, col, isQueenThreatened ? '#dc2626' : activeTheme.queen);
+            }
+
+            // 3. Comprobar victoria y actualizar contador de soluciones (solo N=4,5,6)
+            if (!isGameOver && queens.length === boardSize) {
+                if (totalQueensThreatened === 0) {
+                    
+                    const currentHash = hashSolution(queens);
+                    let finalMessage = `¡Felicidades! Has resuelto el problema de las ${boardSize} damas.`;
+                    let isSolutionUnique = false;
+
+                    if (!foundSolutions.includes(currentHash)) {
+                        isSolutionUnique = true;
+                        solutionCount++;
+                        foundSolutions.push(currentHash);
+                        playWinFanfare(); 
+                        startConfetti();
+                    }
+
+                    const isChallengeMode = boardSize >= 4 && boardSize <= 6;
+                    
+                    if (isChallengeMode) {
+                        // Soluciones únicas conocidas: N=4 (2), N=5 (10), N=6 (4)
+                        const totalSolutions = { 4: 2, 5: 10, 6: 4 }; 
+                        const maxSolutions = totalSolutions[boardSize] || Infinity;
+                        
+                        if (isSolutionUnique) {
+                           finalMessage = `¡Nueva solución descubierta! Llevas **${solutionCount}** de **${maxSolutions}** configuraciones únicas.`;
+                        } else {
+                           finalMessage = `¡Solución ya conocida! Sigue buscando. Llevas ${solutionCount} de ${maxSolutions}.`;
+                        }
+
+                        if (solutionCount === maxSolutions) {
+                            finalMessage += ` ¡Has encontrado **TODAS** las soluciones!`;
+                            isGameOver = true;
+                        } else {
+                            isGameOver = false; 
+                        }
+
+                    } else {
+                        isGameOver = true; // Termina el juego para N > 6
+                    }
+
+                    showMessage(finalMessage, 'win-message');
+                } else {
+                     showMessage(`Has colocado ${queens.length} damas, pero ¡aún hay conflictos!`, '');
+                }
+            } else if (queens.length > 0 && queens.length < boardSize) {
+                 showMessage(`Llevas ${queens.length} damas colocadas. Seguras: ${safeQueensCount}. Amenazadas: ${totalQueensThreatened}.`, '');
+            } else if (queens.length === 0) {
+                 document.getElementById('game-message').style.display = 'none';
+            }
+        }
+
+        /**
+         * Función principal para dibujar la dama.
+         * @param {number} r - Fila.
+         * @param {number} c - Columna.
+         * @param {string} color - Color de la dama.
+         */
+        function drawQueen(r, c, color) {
+            switch (queenIconType) {
+                case 'FontAwesome':
+                    drawQueenFontAwesome(r, c, color);
+                    break;
+                case 'SimpleCrown':
+                    drawQueenSimpleCrown(r, c, color); // Ahora es Círculo Negro
+                    break;
+                case 'Classic':
+                    drawQueenClassic(r, c, color); // Ahora es Unicode
+                    break;
+                case 'SymbolQ':
+                    drawQueenSymbolQ(r, c, color);
+                    break;
+                default:
+                    drawQueenFontAwesome(r, c, color);
+            }
+        }
+        
+        /**
+         * Estilo 1: Dama usando Font Awesome (la opción estándar).
+         */
+        function drawQueenFontAwesome(r, c, color) {
+            const centerX = c * squareSize + squareSize / 2;
+            const centerY = r * squareSize + squareSize / 2;
+            const fontSize = squareSize * 0.7; 
+            
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Icono de Dama (Unicode: \uf445 de Font Awesome)
+            ctx.font = `900 ${fontSize}px "Font Awesome 6 Free"`; 
+            ctx.fillText('\uf445', centerX, centerY + squareSize * 0.05); 
+
+            ctx.restore();
+        }
+
+        /**
+         * Estilo 2: Dama como un círculo negro simple (Corona Simple -> Círculo Negro).
+         */
+        function drawQueenSimpleCrown(r, c, color) {
+            const centerX = c * squareSize + squareSize / 2;
+            const centerY = r * squareSize + squareSize / 2;
+            const radius = squareSize * 0.35; // Un poco más grande para llenar mejor la casilla
+            
+            ctx.save();
+            
+            // Dibuja el círculo base (cuerpo de la dama)
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        /**
+         * Estilo 3: Dama Clásica (Unicode de ajedrez).
+         */
+        function drawQueenClassic(r, c, color) {
+            const centerX = c * squareSize + squareSize / 2;
+            const centerY = r * squareSize + squareSize / 2;
+            const fontSize = squareSize * 0.8; 
+
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Carácter Unicode de la Dama Negra de ajedrez (♛)
+            ctx.font = `${fontSize}px serif`; 
+            ctx.fillText('♛', centerX, centerY + squareSize * 0.05); 
+
+            ctx.restore();
+        }
+        
+        /**
+         * Estilo 4: Símbolo Q (Letra Q).
+         */
+        function drawQueenSymbolQ(r, c, color) {
+            const centerX = c * squareSize + squareSize / 2;
+            const centerY = r * squareSize + squareSize / 2;
+            const fontSize = squareSize * 0.8; 
+            
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Usar una fuente que soporte la Q grande y estilizada
+            ctx.font = `900 ${fontSize}px Inter, sans-serif`; 
+            ctx.fillText('Q', centerX, centerY + squareSize * 0.05); 
+
+            ctx.restore();
+        }
+
+
+        /**
+         * Maneja el evento de clic en el tablero.
+         */
+        function handleBoardClick(event) {
+            if (isGameOver) return;
+
+            if (Tone.context.state !== 'running') {
+                Tone.start();
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            const col = Math.floor(x / squareSize);
+            const row = Math.floor(y / squareSize);
+
+            const existingIndex = queens.findIndex(q => q.row === row && q.col === col);
+
+            if (existingIndex !== -1) {
+                queens.splice(existingIndex, 1);
+            } else {
+                if (queens.length < boardSize) {
+                    const isPositionThreatened = isThreatened(row, col, queens);
+
+                    queens.push({ row, col });
+
+                    if (isPositionThreatened) {
+                        playThreatSound();
+                    } else {
+                        playSafeSound(); 
+                    }
+                }
+            }
+
+            drawBoard();
+        }
+
+        // Inicializar el juego cuando la ventana haya cargado
+        window.onload = initialize;
+
+    </script>
+</body>
+</html>
